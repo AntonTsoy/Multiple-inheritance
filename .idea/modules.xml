@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/multiple-inheritance.iml" filepath="$PROJECT_DIR$/.idea/multiple-inheritance.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/multiple-inheritance.iml" filepath="$PROJECT_DIR$/.idea/modules/multiple-inheritance.iml" />
+      <module fileurl="file://$PROJECT_DIR$/multiple-inheritance2.iml" filepath="$PROJECT_DIR$/multiple-inheritance2.iml" />
     </modules>
   </component>
 </project>

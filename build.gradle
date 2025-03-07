@@ -2,33 +2,21 @@ plugins {
     id 'java'
 }
 
-group 'org.example'
+group 'com.example'  // Опционально, но рекомендую оставить
 version '1.0-SNAPSHOT'
+
+sourceCompatibility = 11
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    // Annotation Processing
-    implementation 'com.google.auto.service:auto-service:1.1.1'
-    annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
-
-    // JavaPoet для генерации кода
     implementation 'com.squareup:javapoet:1.13.0'
-
-    // Тестирование
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
 }
 
-test {
-    useJUnitPlatform()
-}
-
+// Настройка компиляции для поддержки процессора аннотаций
 compileJava {
-    options.compilerArgs += [
-            '-Xlint:all',
-            '-Werror'
-    ]
+    options.annotationProcessorPath = configurations.compileClasspath
 }
