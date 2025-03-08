@@ -1,9 +1,6 @@
 package ru.nsu.mh;
 
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -15,7 +12,9 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @SupportedAnnotationTypes("ru.nsu.mh.InheritanceRoot")
 @SupportedSourceVersion(SourceVersion.RELEASE_23)
@@ -79,8 +78,13 @@ public class HierarchyRootProcessor extends AbstractProcessor {
     private MethodSpec getMethod(ExecutableElement executableMethodElement) {
         String methodName = executableMethodElement.getSimpleName().toString();
         TypeName returnType = TypeName.get(executableMethodElement.getReturnType());
-        return MethodSpec.methodBuilder(methodName)
-            .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+
+        var methodBuilder = MethodSpec.methodBuilder(methodName)
+            .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
+
+        methodBuilder.addParameters(getParams(executableMethodElement));
+
+        return methodBuilder
             .returns(returnType)
             .build();
     }
@@ -89,14 +93,33 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         String methodName = executableMethodElement.getSimpleName().toString();
         String nextMethodName = "next" + capitalize(methodName);
         TypeName returnType = TypeName.get(executableMethodElement.getReturnType());
-        return MethodSpec.methodBuilder(nextMethodName)
-            .addModifiers(Modifier.PROTECTED)
+
+        var methodBuilder = MethodSpec.methodBuilder(nextMethodName)
+                .addModifiers(Modifier.PROTECTED);
+
+        var params = getParams(executableMethodElement);
+        methodBuilder.addParameters(params);
+
+        String parmsStr = params
+                .stream()
+                .map(param -> param.name)
+                .collect(Collectors.joining(", "));
+        // TODO: Заменить на реальную логику констрирования одного из предков и его вызова
+        methodBuilder.addCode(
+                (returnType.equals(TypeName.VOID) ? "" : "return ") +
+                        "next." + methodName + "(" + parmsStr + ");");
+
+        return methodBuilder
             .returns(returnType)
-            // TODO: Заменить на реальную логику констрирования одного из предков и его вызова
-            .addCode(
-                    (returnType.equals(TypeName.VOID) ? "" : "return ") +
-                            "next." + methodName + "();")
             .build();
+    }
+
+    private List<ParameterSpec> getParams(ExecutableElement executableMethodElement) {
+        return executableMethodElement
+                .getParameters()
+                .stream()
+                .map(ParameterSpec::get)
+                .toList();
     }
 
     private String capitalize(String str) {

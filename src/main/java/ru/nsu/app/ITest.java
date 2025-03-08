@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 @InheritanceRoot
 public interface ITest {
-    void voidFn();
+    void voidFn(int num);
 
     int getInt();
 
