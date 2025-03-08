@@ -1,10 +1,14 @@
 package ru.nsu.app;
 
-import processor.HierarchyRoot;
+import ru.nsu.mh.InheritanceRoot;
 
-@HierarchyRoot
+import java.util.ArrayList;
+
+@InheritanceRoot
 public interface ITest {
     void voidFn();
 
-    int getNum();
+    int getInt();
+
+    ArrayList<Integer> aboba();
 }
