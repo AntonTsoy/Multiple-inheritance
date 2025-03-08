@@ -1,0 +1,16 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'processor'
+version = '1.0.0'
+
+java {
+    withSourcesJar()
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Annotation Module'
+    }
+}

@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+group = 'processor'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':annotations') // Используем аннотацию
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Annotation Processor Module'
+    }
+}
