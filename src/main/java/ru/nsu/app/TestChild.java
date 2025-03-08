@@ -2,6 +2,7 @@ package ru.nsu.app;
 
 import java.util.ArrayList;
 
+// TODO: Добавить аннотацию ExtendsMultiple как только она появится
 public class TestChild extends ITestRoot {
     @Override
     public void voidFn() {
