@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+group = 'ru.nsu.mh'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.squareup:javapoet:1.13.0'
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
+    implementation project(':annotations') // Используем аннотацию
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Annotation Processor Module'
+    }
+}
