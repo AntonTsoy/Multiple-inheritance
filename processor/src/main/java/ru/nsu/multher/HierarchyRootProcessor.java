@@ -1,4 +1,4 @@
-package ru.nsu.mh;
+package ru.nsu.multher;
 
 import com.squareup.javapoet.*;
 

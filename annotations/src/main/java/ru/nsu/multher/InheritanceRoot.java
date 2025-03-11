@@ -1,4 +1,4 @@
-package ru.nsu.mh;
+package ru.nsu.multher;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

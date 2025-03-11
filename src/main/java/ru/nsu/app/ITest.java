@@ -1,6 +1,6 @@
 package ru.nsu.app;
 
-import ru.nsu.mh.InheritanceRoot;
+import ru.nsu.multher.InheritanceRoot;
 
 import java.util.ArrayList;
 
