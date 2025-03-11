@@ -38,7 +38,8 @@ public class HierarchyRootProcessor extends AbstractProcessor {
     }
 
     private void generateRootClass(TypeElement interfaceElement) {
-        String packageName = processingEnv.getElementUtils().getPackageOf(interfaceElement).getQualifiedName().toString();
+        String packageName = processingEnv.getElementUtils().getPackageOf(interfaceElement)
+                                          .getQualifiedName().toString();
         String rootClassName = interfaceElement.getSimpleName() + "Root";
         String fullClassName = packageName.isEmpty() ? rootClassName : packageName + "." + rootClassName;
 
@@ -53,15 +54,12 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         for (Element methodElement : interfaceElement.getEnclosedElements()) {
             if (methodElement.getKind() == ElementKind.METHOD) {
                 ExecutableElement executableMethodElement = (ExecutableElement) methodElement;
-
                 rootClassBuilder.addMethod(getMethod(executableMethodElement));
-
                 rootClassBuilder.addMethod(getNextMethod(executableMethodElement));
             }
         }
 
-        JavaFile javaFile = JavaFile.builder(packageName, rootClassBuilder.build())
-                .build();
+        JavaFile javaFile = JavaFile.builder(packageName, rootClassBuilder.build()).build();
 
         try {
             JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(
@@ -84,9 +82,7 @@ public class HierarchyRootProcessor extends AbstractProcessor {
 
         methodBuilder.addParameters(getParams(executableMethodElement));
 
-        return methodBuilder
-            .returns(returnType)
-            .build();
+        return methodBuilder.returns(returnType).build();
     }
 
     private MethodSpec getNextMethod(ExecutableElement executableMethodElement) {
@@ -100,18 +96,13 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         var params = getParams(executableMethodElement);
         methodBuilder.addParameters(params);
 
-        String parmsStr = params
-                .stream()
-                .map(param -> param.name)
-                .collect(Collectors.joining(", "));
+        String paramsStr = params.stream().map(param -> param.name)
+                                .collect(Collectors.joining(", "));
         // TODO: Заменить на реальную логику констрирования одного из предков и его вызова
-        methodBuilder.addCode(
-                (returnType.equals(TypeName.VOID) ? "" : "return ") +
-                        "next." + methodName + "(" + parmsStr + ");");
+        methodBuilder.addCode((returnType.equals(TypeName.VOID) ? "" : "return ")
+                               + "next." + methodName + "(" + paramsStr + ");");
 
-        return methodBuilder
-            .returns(returnType)
-            .build();
+        return methodBuilder.returns(returnType).build();
     }
 
     private List<ParameterSpec> getParams(ExecutableElement executableMethodElement) {
