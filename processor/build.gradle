@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-group = 'ru.nsu.mh'
+group = 'ru.nsu.multher'
 version = '1.0.0'
 
 repositories {

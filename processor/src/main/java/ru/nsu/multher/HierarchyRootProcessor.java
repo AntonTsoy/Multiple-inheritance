@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@SupportedAnnotationTypes("ru.nsu.mh.InheritanceRoot")
+@SupportedAnnotationTypes("ru.nsu.multher.InheritanceRoot")
 @SupportedSourceVersion(SourceVersion.RELEASE_23)
 public class HierarchyRootProcessor extends AbstractProcessor {
     @Override
@@ -90,8 +90,7 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         String nextMethodName = "next" + capitalize(methodName);
         TypeName returnType = TypeName.get(executableMethodElement.getReturnType());
 
-        var methodBuilder = MethodSpec.methodBuilder(nextMethodName)
-                .addModifiers(Modifier.PROTECTED);
+        var methodBuilder = MethodSpec.methodBuilder(nextMethodName).addModifiers(Modifier.PROTECTED);
 
         var params = getParams(executableMethodElement);
         methodBuilder.addParameters(params);
