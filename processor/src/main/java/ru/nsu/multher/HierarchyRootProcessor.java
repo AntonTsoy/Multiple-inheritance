@@ -17,8 +17,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 
-import ru.nsu.multher.ExtendsMultiple;
-
 @SupportedAnnotationTypes("ru.nsu.multher.InheritanceRoot")
 @SupportedSourceVersion(SourceVersion.RELEASE_23)
 public class HierarchyRootProcessor extends AbstractProcessor {
@@ -55,11 +53,19 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                 )
                 .addModifiers(Modifier.PROTECTED)
                 .build();
+        FieldSpec possibleNextInstsField = FieldSpec
+                .builder(
+                        ParameterizedTypeName.get(ClassName.get(ArrayList.class), interfaceType),
+                        "possibleNextInsts"
+                )
+                .addModifiers(Modifier.PROTECTED)
+                .build();
 
         ClassName exxMltAnn = ClassName.get(ExtendsMultiple.class);
         MethodSpec constructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PROTECTED)
                 .addStatement("this.ancestors = new ArrayList<>();")
+                .addStatement("this.possibleNextInsts = new ArrayList<>();")
                 .addStatement("$L annotation = this.getClass().getAnnotation($L.class);", exxMltAnn, exxMltAnn)
                 .addCode("if (annotation != null) {\n" +
                         "    for (Class<?> ancestorClass : annotation.value()) {\n" +
@@ -76,13 +82,14 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .addSuperinterface(interfaceType)
                 .addField(ancestorsField)
+                .addField(possibleNextInstsField)
                 .addMethod(constructor);
 
         for (Element methodElement : interfaceElement.getEnclosedElements()) {
             if (methodElement.getKind() == ElementKind.METHOD) {
                 ExecutableElement executableMethodElement = (ExecutableElement) methodElement;
                 rootClassBuilder.addMethod(getMethod(executableMethodElement));
-                rootClassBuilder.addMethod(getNextMethod(executableMethodElement));
+                rootClassBuilder.addMethod(getNextMethod(executableMethodElement, rootClassName));
             }
         }
 
@@ -112,7 +119,7 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         return methodBuilder.returns(returnType).build();
     }
 
-    private MethodSpec getNextMethod(ExecutableElement executableMethodElement) {
+    private MethodSpec getNextMethod(ExecutableElement executableMethodElement, String rootClassName) {
         String methodName = executableMethodElement.getSimpleName().toString();
         String nextMethodName = "next" + capitalize(methodName);
         TypeName returnType = TypeName.get(executableMethodElement.getReturnType());
@@ -122,24 +129,20 @@ public class HierarchyRootProcessor extends AbstractProcessor {
 
         var methodBuilder = MethodSpec.methodBuilder(nextMethodName)
                 .addModifiers(Modifier.PROTECTED)
-                .addParameters(getParams(executableMethodElement))
-                .beginControlFlow("while (!ancestors.isEmpty())");
+                .addParameters(getParams(executableMethodElement));
+
+        methodBuilder.addStatement("possibleNextInsts.addAll(ancestors);");
+        methodBuilder.addStatement("$L nextInstance = ($L) possibleNextInsts.remove(0);", rootClassName, rootClassName);
+        methodBuilder.addStatement("nextInstance.possibleNextInsts.addAll(possibleNextInsts);");
 
         if (!returnType.equals(TypeName.VOID)) {
-            methodBuilder.addStatement("return ancestors.remove(0).$L($L)", methodName, paramsStr);
+            methodBuilder.addStatement("var result = nextInstance.$L($L)", methodName, paramsStr);
         } else {
-            methodBuilder.addStatement("ancestors.remove(0).$L($L)", methodName, paramsStr);
+            methodBuilder.addStatement("nextInstance.$L($L)", methodName, paramsStr);
         }
 
-        methodBuilder.endControlFlow();
-
-        if (!returnType.equals(TypeName.VOID)) {
-            if (returnType.isPrimitive()) {
-                methodBuilder.addStatement("return 0");
-            } else {
-                methodBuilder.addStatement("return null");
-            }
-        }
+        if (!returnType.equals(TypeName.VOID))
+            methodBuilder.addStatement("return result");
 
         return methodBuilder.returns(returnType).build();
     }
