@@ -1,22 +1,27 @@
 plugins {
-    id 'java'
+    id 'application'
 }
 
-group 'com.example'  // Опционально, но рекомендую оставить
-version '1.0-SNAPSHOT'
-
-sourceCompatibility = 11
+group = 'ru.nsu'
+version = '1.0.0'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation 'com.squareup:javapoet:1.13.0'
-    implementation 'javax.annotation:javax.annotation-api:1.3.2'
+    implementation project(':annotations')
+    annotationProcessor project(':processor')
 }
 
-// Настройка компиляции для поддержки процессора аннотаций
-compileJava {
-    options.annotationProcessorPath = configurations.compileClasspath
+application {
+    mainClass = 'ru.nsu.app.Main'
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'ru.nsu.app.Main'
+        )
+    }
 }
