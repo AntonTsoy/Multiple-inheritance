@@ -12,9 +12,11 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @SupportedAnnotationTypes("ru.nsu.multher.InheritanceRoot")
 @SupportedSourceVersion(SourceVersion.RELEASE_23)
@@ -39,23 +41,23 @@ public class HierarchyRootProcessor extends AbstractProcessor {
 
     private void generateRootClass(TypeElement interfaceElement) {
         String packageName = processingEnv.getElementUtils().getPackageOf(interfaceElement)
-                                          .getQualifiedName().toString();
+                .getQualifiedName().toString();
         String rootClassName = interfaceElement.getSimpleName() + "Root";
         String fullClassName = packageName.isEmpty() ? rootClassName : packageName + "." + rootClassName;
 
         TypeName interfaceType = TypeName.get(interfaceElement.asType());
 
-        // Генерация абстрактного класса
         var rootClassBuilder = TypeSpec.classBuilder(rootClassName)
-            .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-            .addSuperinterface(interfaceType)
-            .addField(interfaceType, "next", Modifier.PROTECTED);
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .addSuperinterface(interfaceType)
+                .addFields(getFields(interfaceType))
+                .addMethod(getConstructor(interfaceElement));
 
         for (Element methodElement : interfaceElement.getEnclosedElements()) {
             if (methodElement.getKind() == ElementKind.METHOD) {
                 ExecutableElement executableMethodElement = (ExecutableElement) methodElement;
                 rootClassBuilder.addMethod(getMethod(executableMethodElement));
-                rootClassBuilder.addMethod(getNextMethod(executableMethodElement));
+                rootClassBuilder.addMethod(getNextMethod(executableMethodElement, rootClassName));
             }
         }
 
@@ -73,41 +75,97 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         }
     }
 
+    private ArrayList<FieldSpec> getFields(TypeName interfaceType) {
+        ArrayList<FieldSpec> fieldSpecs = new ArrayList<>();
+        fieldSpecs.add(FieldSpec
+                .builder(
+                        ParameterizedTypeName.get(ClassName.get(ArrayList.class), interfaceType),
+                        "ancestors"
+                )
+                .addModifiers(Modifier.PRIVATE)
+                .build()
+        );
+        fieldSpecs.add(FieldSpec
+                .builder(
+                        ParameterizedTypeName.get(ClassName.get(ArrayList.class), interfaceType),
+                        "possibleNextInsts"
+                )
+                .addModifiers(Modifier.PRIVATE)
+                .build()
+        );
+        return fieldSpecs;
+    }
+
+    private MethodSpec getConstructor(TypeElement interfaceElement) {
+        ClassName exxMltAnn = ClassName.get(ExtendsMultiple.class);
+        return MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PROTECTED)
+                .addStatement("this.ancestors = new ArrayList<>();")
+                .addStatement("this.possibleNextInsts = new ArrayList<>();")
+                .addStatement("$L annotation = this.getClass().getAnnotation($L.class);", exxMltAnn, exxMltAnn)
+                .addCode("if (annotation != null) {\n" +
+                        "    for (Class<?> ancestorClass : annotation.value()) {\n" +
+                        "        try {\n" +
+                        "            this.ancestors.add((" + interfaceElement.getSimpleName() + ") ancestorClass.getDeclaredConstructor().newInstance());\n" +
+                        "        } catch (Exception e) {\n" +
+                        "            throw new RuntimeException(\"Failed to instantiate ancestor \" + ancestorClass.getName(), e);\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n")
+                .build();
+    }
+
     private MethodSpec getMethod(ExecutableElement executableMethodElement) {
         String methodName = executableMethodElement.getSimpleName().toString();
         TypeName returnType = TypeName.get(executableMethodElement.getReturnType());
 
         var methodBuilder = MethodSpec.methodBuilder(methodName)
-            .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
 
         methodBuilder.addParameters(getParams(executableMethodElement));
 
         return methodBuilder.returns(returnType).build();
     }
 
-    private MethodSpec getNextMethod(ExecutableElement executableMethodElement) {
+    private MethodSpec getNextMethod(ExecutableElement executableMethodElement, String rootClassName) {
         String methodName = executableMethodElement.getSimpleName().toString();
         String nextMethodName = "next" + capitalize(methodName);
         TypeName returnType = TypeName.get(executableMethodElement.getReturnType());
+        String paramsStr = getParams(executableMethodElement)
+                .stream().map(param -> param.name)
+                .collect(Collectors.joining(", "));
 
-        var methodBuilder = MethodSpec.methodBuilder(nextMethodName).addModifiers(Modifier.PROTECTED);
+        var methodBuilder = MethodSpec.methodBuilder(nextMethodName)
+                .addModifiers(Modifier.PROTECTED)
+                .addParameters(getParams(executableMethodElement));
 
-        var params = getParams(executableMethodElement);
-        methodBuilder.addParameters(params);
+        methodBuilder.addStatement(
+            "if (ancestors.isEmpty()) throw new $L($L)", TypeName.get(IllegalAccessError.class),
+            "\"Only types with ancestors specified by @ExtendsMultiple allowed to call next methods\""
+        );
 
-        String paramsStr = params.stream().map(param -> param.name)
-                                .collect(Collectors.joining(", "));
-        // TODO: Заменить на реальную логику констрирования одного из предков и его вызова
-        methodBuilder.addCode((returnType.equals(TypeName.VOID) ? "" : "return ")
-                               + "next." + methodName + "(" + paramsStr + ");");
+        methodBuilder.addStatement("possibleNextInsts.addAll(ancestors)");
+        methodBuilder.addStatement("$L nextInstance = ($L) possibleNextInsts.remove(0)", rootClassName, rootClassName);
+        methodBuilder.addStatement("nextInstance.possibleNextInsts.addAll(possibleNextInsts)");
+        methodBuilder.addStatement("possibleNextInsts.clear()");
+
+        if (!returnType.equals(TypeName.VOID)) {
+            methodBuilder.addStatement("var result = nextInstance.$L($L)", methodName, paramsStr);
+        } else {
+            methodBuilder.addStatement("nextInstance.$L($L)", methodName, paramsStr);
+        }
+
+        // Очищаем потенциальных последователей у предка (на случай, если next у предка не был вызван)
+        methodBuilder.addStatement("nextInstance.possibleNextInsts.clear()");
+
+        if (!returnType.equals(TypeName.VOID))
+            methodBuilder.addStatement("return result");
 
         return methodBuilder.returns(returnType).build();
     }
 
     private List<ParameterSpec> getParams(ExecutableElement executableMethodElement) {
-        return executableMethodElement
-                .getParameters()
-                .stream()
+        return executableMethodElement.getParameters().stream()
                 .map(ParameterSpec::get)
                 .toList();
     }
