@@ -23,12 +23,12 @@ public class HierarchyRootProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         for (Element element : roundEnv.getElementsAnnotatedWith(InheritanceRoot.class)) {
             processingEnv.getMessager().printMessage(
-                    Diagnostic.Kind.NOTE, "Found element @HierarchyRoot " + element
+                    Diagnostic.Kind.NOTE, "Found element @InheritanceRoot " + element
             );
             if (element.getKind() != ElementKind.INTERFACE) {
                 processingEnv.getMessager().printMessage(
                         Diagnostic.Kind.ERROR,
-                        "@HierarchyRoot can only be applied to interfaces", element);
+                        "@InheritanceRoot can only be applied to interfaces", element);
                 return true;
             }
             TypeElement interfaceElement = (TypeElement) element;

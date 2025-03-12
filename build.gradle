@@ -12,8 +12,6 @@ repositories {
 dependencies {
     implementation project(':annotations')
     annotationProcessor project(':processor')
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
-    testImplementation 'com.google.testing.compile:compile-testing:0.20'
 }
 
 application {
