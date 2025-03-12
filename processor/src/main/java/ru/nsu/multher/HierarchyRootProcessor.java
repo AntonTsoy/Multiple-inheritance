@@ -93,13 +93,6 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                 .addModifiers(Modifier.PRIVATE)
                 .build()
         );
-        fieldSpecs.add(FieldSpec
-                .builder(
-                        TypeName.BOOLEAN, "nextWasCalledFlag"
-                )
-                .addModifiers(Modifier.PRIVATE)
-                .build()
-        );
         return fieldSpecs;
     }
 
@@ -109,7 +102,6 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                 .addModifiers(Modifier.PROTECTED)
                 .addStatement("this.ancestors = new ArrayList<>();")
                 .addStatement("this.possibleNextInsts = new ArrayList<>();")
-                .addStatement("this.nextWasCalledFlag = false;")
                 .addStatement("$L annotation = this.getClass().getAnnotation($L.class);", exxMltAnn, exxMltAnn)
                 .addCode("if (annotation != null) {\n" +
                         "    for (Class<?> ancestorClass : annotation.value()) {\n" +
@@ -147,9 +139,15 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                 .addModifiers(Modifier.PROTECTED)
                 .addParameters(getParams(executableMethodElement));
 
+        methodBuilder.addStatement(
+            "if (ancestors.isEmpty()) throw new $L($L)", TypeName.get(IllegalAccessError.class),
+            "\"Only types with ancestors specified by @ExtendsMultiple allowed to call next methods\""
+        );
+
         methodBuilder.addStatement("possibleNextInsts.addAll(ancestors)");
         methodBuilder.addStatement("$L nextInstance = ($L) possibleNextInsts.remove(0)", rootClassName, rootClassName);
         methodBuilder.addStatement("nextInstance.possibleNextInsts.addAll(possibleNextInsts)");
+        methodBuilder.addStatement("possibleNextInsts.clear()");
 
         if (!returnType.equals(TypeName.VOID)) {
             methodBuilder.addStatement("var result = nextInstance.$L($L)", methodName, paramsStr);
@@ -157,7 +155,8 @@ public class HierarchyRootProcessor extends AbstractProcessor {
             methodBuilder.addStatement("nextInstance.$L($L)", methodName, paramsStr);
         }
 
-        methodBuilder.addStatement("possibleNextInsts.clear()");
+        // Очищаем потенциальных последователей у предка (на случай, если next у предка не был вызван)
+        methodBuilder.addStatement("nextInstance.possibleNextInsts.clear()");
 
         if (!returnType.equals(TypeName.VOID))
             methodBuilder.addStatement("return result");

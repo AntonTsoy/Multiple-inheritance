@@ -9,4 +9,9 @@ public class BottomChild extends ITestRoot {
         System.out.println("Bottom");
         super.nextSay();
     }
+
+    @Override
+    public int getPlus1(int num) {
+        return super.nextGetPlus1(num) + 1;
+    }
 }

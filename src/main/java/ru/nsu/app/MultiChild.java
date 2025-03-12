@@ -2,11 +2,11 @@ package ru.nsu.app;
 
 import ru.nsu.multher.ExtendsMultiple;
 
-@ExtendsMultiple({ RealRoot.class })
-public class ChildB extends ITestRoot {
+@ExtendsMultiple({ ChildA.class, BottomChild.class })
+public class MultiChild extends ITestRoot {
     @Override
     public void say() {
-        System.out.println("B");
+        System.out.println("Multi");
         super.nextSay();
     }
 
