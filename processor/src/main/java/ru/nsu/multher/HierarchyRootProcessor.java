@@ -12,6 +12,7 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,44 +47,11 @@ public class HierarchyRootProcessor extends AbstractProcessor {
 
         TypeName interfaceType = TypeName.get(interfaceElement.asType());
 
-        FieldSpec ancestorsField = FieldSpec
-                .builder(
-                        ParameterizedTypeName.get(ClassName.get(ArrayList.class), interfaceType),
-                        "ancestors"
-                )
-                .addModifiers(Modifier.PROTECTED)
-                .build();
-        FieldSpec possibleNextInstsField = FieldSpec
-                .builder(
-                        ParameterizedTypeName.get(ClassName.get(ArrayList.class), interfaceType),
-                        "possibleNextInsts"
-                )
-                .addModifiers(Modifier.PROTECTED)
-                .build();
-
-        ClassName exxMltAnn = ClassName.get(ExtendsMultiple.class);
-        MethodSpec constructor = MethodSpec.constructorBuilder()
-                .addModifiers(Modifier.PROTECTED)
-                .addStatement("this.ancestors = new ArrayList<>();")
-                .addStatement("this.possibleNextInsts = new ArrayList<>();")
-                .addStatement("$L annotation = this.getClass().getAnnotation($L.class);", exxMltAnn, exxMltAnn)
-                .addCode("if (annotation != null) {\n" +
-                        "    for (Class<?> ancestorClass : annotation.value()) {\n" +
-                        "        try {\n" +
-                        "            this.ancestors.add((" + interfaceElement.getSimpleName() + ") ancestorClass.getDeclaredConstructor().newInstance());\n" +
-                        "        } catch (Exception e) {\n" +
-                        "            throw new RuntimeException(\"Failed to instantiate ancestor \" + ancestorClass.getName(), e);\n" +
-                        "        }\n" +
-                        "    }\n" +
-                        "}\n")
-                .build();
-
         var rootClassBuilder = TypeSpec.classBuilder(rootClassName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .addSuperinterface(interfaceType)
-                .addField(ancestorsField)
-                .addField(possibleNextInstsField)
-                .addMethod(constructor);
+                .addFields(getFields(interfaceType))
+                .addMethod(getConstructor(interfaceElement));
 
         for (Element methodElement : interfaceElement.getEnclosedElements()) {
             if (methodElement.getKind() == ElementKind.METHOD) {
@@ -105,6 +73,54 @@ public class HierarchyRootProcessor extends AbstractProcessor {
             processingEnv.getMessager().printMessage(
                     Diagnostic.Kind.ERROR, "Failed to generate root class: " + e.getMessage());
         }
+    }
+
+    private ArrayList<FieldSpec> getFields(TypeName interfaceType) {
+        ArrayList<FieldSpec> fieldSpecs = new ArrayList<>();
+        fieldSpecs.add(FieldSpec
+                .builder(
+                        ParameterizedTypeName.get(ClassName.get(ArrayList.class), interfaceType),
+                        "ancestors"
+                )
+                .addModifiers(Modifier.PRIVATE)
+                .build()
+        );
+        fieldSpecs.add(FieldSpec
+                .builder(
+                        ParameterizedTypeName.get(ClassName.get(ArrayList.class), interfaceType),
+                        "possibleNextInsts"
+                )
+                .addModifiers(Modifier.PRIVATE)
+                .build()
+        );
+        fieldSpecs.add(FieldSpec
+                .builder(
+                        TypeName.BOOLEAN, "nextWasCalledFlag"
+                )
+                .addModifiers(Modifier.PRIVATE)
+                .build()
+        );
+        return fieldSpecs;
+    }
+
+    private MethodSpec getConstructor(TypeElement interfaceElement) {
+        ClassName exxMltAnn = ClassName.get(ExtendsMultiple.class);
+        return MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PROTECTED)
+                .addStatement("this.ancestors = new ArrayList<>();")
+                .addStatement("this.possibleNextInsts = new ArrayList<>();")
+                .addStatement("this.nextWasCalledFlag = false;")
+                .addStatement("$L annotation = this.getClass().getAnnotation($L.class);", exxMltAnn, exxMltAnn)
+                .addCode("if (annotation != null) {\n" +
+                        "    for (Class<?> ancestorClass : annotation.value()) {\n" +
+                        "        try {\n" +
+                        "            this.ancestors.add((" + interfaceElement.getSimpleName() + ") ancestorClass.getDeclaredConstructor().newInstance());\n" +
+                        "        } catch (Exception e) {\n" +
+                        "            throw new RuntimeException(\"Failed to instantiate ancestor \" + ancestorClass.getName(), e);\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n")
+                .build();
     }
 
     private MethodSpec getMethod(ExecutableElement executableMethodElement) {
@@ -131,15 +147,17 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                 .addModifiers(Modifier.PROTECTED)
                 .addParameters(getParams(executableMethodElement));
 
-        methodBuilder.addStatement("possibleNextInsts.addAll(ancestors);");
-        methodBuilder.addStatement("$L nextInstance = ($L) possibleNextInsts.remove(0);", rootClassName, rootClassName);
-        methodBuilder.addStatement("nextInstance.possibleNextInsts.addAll(possibleNextInsts);");
+        methodBuilder.addStatement("possibleNextInsts.addAll(ancestors)");
+        methodBuilder.addStatement("$L nextInstance = ($L) possibleNextInsts.remove(0)", rootClassName, rootClassName);
+        methodBuilder.addStatement("nextInstance.possibleNextInsts.addAll(possibleNextInsts)");
 
         if (!returnType.equals(TypeName.VOID)) {
             methodBuilder.addStatement("var result = nextInstance.$L($L)", methodName, paramsStr);
         } else {
             methodBuilder.addStatement("nextInstance.$L($L)", methodName, paramsStr);
         }
+
+        methodBuilder.addStatement("possibleNextInsts.clear()");
 
         if (!returnType.equals(TypeName.VOID))
             methodBuilder.addStatement("return result");
