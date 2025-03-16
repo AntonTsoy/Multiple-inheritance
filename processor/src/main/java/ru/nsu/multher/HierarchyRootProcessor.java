@@ -104,7 +104,7 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                 .addModifiers(Modifier.PROTECTED)
                 .addStatement("this.ancestors = new ArrayList<>()")
                 .addStatement("this.possibleNextInsts = new ArrayList<>()")
-                .addStatement("var classes = getAncestorsClasses(this.getClass())")
+                .addStatement("var classes = getTopstoredAncestorsClasses(this.getClass())")
                 .addCode(
                     "for (Class<?> ancestorClass : classes) {\n" +
                     "  try {\n" +
@@ -122,7 +122,7 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         var argClassType = ParameterizedTypeName.get(ClassName.get(Class.class), TypeVariableName.get("?"));
         var retClassType = ParameterizedTypeName.get(ClassName.get(ArrayList.class), argClassType);
         methodsSpecs.add(
-            MethodSpec.methodBuilder("getAncestorsClasses")
+            MethodSpec.methodBuilder("getTopstoredAncestorsClasses")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .returns(retClassType)
                 .addParameter(argClassType, "childClass")
@@ -156,6 +156,19 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                     "    ancestorsClasses.add(ancestorClass);\n" +
                     "    ancestorsClasses.addAll(getParentsClassesRecursively(ancestorClass, startClass));\n" +
                     "  }\n" +
+                    "}\n"
+                )
+                .addStatement("return ancestorsClasses")
+                .build()
+        );
+        methodsSpecs.add(
+            MethodSpec.methodBuilder("getAncestorsClasses")
+                .addModifiers(Modifier.PUBLIC)
+                .returns(retClassType)
+                .addStatement("var ancestorsClasses = new ArrayList<Class<?>>()")
+                .addCode(
+                    "for (var ancestor : ancestors) {\n" +
+                    "  ancestorsClasses.add(ancestor.getClass());\n" +
                     "}\n"
                 )
                 .addStatement("return ancestorsClasses")

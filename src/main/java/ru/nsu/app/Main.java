@@ -38,13 +38,6 @@ public class Main {
 
     public static void main(String[] args) {
 
-        System.out.println(BottomChild.class.getName() + ": " + getAncestorsClasses(BottomChild.class));
-        System.out.println(ChildA.class.getName() + ": " + getAncestorsClasses(ChildA.class));
-        System.out.println(MultiChild.class.getName() + ": " + getAncestorsClasses(MultiChild.class));
-        System.out.println(StateChild.class.getName() + ": " + getAncestorsClasses(StateChild.class));
-        System.out.println(StateBottomChild.class.getName() + ": " + getAncestorsClasses(StateBottomChild.class));
-
-
         BottomChild bottomChild = new BottomChild();
         basicTestPipeline(bottomChild);
         basicTestPipeline(bottomChild);
@@ -54,8 +47,12 @@ public class Main {
         basicTestPipeline(childA);
         System.out.println();
 
-        MultiChild multiChild = new MultiChild();
-        basicTestPipeline(multiChild);
+        DiamondChild diamondChild = new DiamondChild();
+        basicTestPipeline(diamondChild);
+        System.out.println();
+
+        BrokenChild brokenChild = new BrokenChild();
+        basicTestPipeline(brokenChild);
         System.out.println();
 
         StateChild stateChild = new StateChild(4);
@@ -68,6 +65,9 @@ public class Main {
     }
 
     private static void basicTestPipeline(ITestRoot inherited) {
+        System.out.println(
+            inherited.getClass().getName() + ": " + inherited.getAncestorsClasses()
+        );
         inherited.say();
         System.out.println(inherited.getPlus1(0));
     }

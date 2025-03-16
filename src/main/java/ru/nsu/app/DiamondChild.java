@@ -3,7 +3,7 @@ package ru.nsu.app;
 import ru.nsu.multher.ExtendsMultiple;
 
 @ExtendsMultiple({ ChildA.class, BottomChild.class, RealRoot.class })
-public class MultiChild extends ITestRoot {
+public class DiamondChild extends ITestRoot {
     @Override
     public void say() {
         System.out.println("Multi");
