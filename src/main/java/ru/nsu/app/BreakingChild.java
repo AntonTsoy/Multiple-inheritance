@@ -2,7 +2,7 @@ package ru.nsu.app;
 
 import ru.nsu.multher.ExtendsMultiple;
 
-@ExtendsMultiple({ ChildA.class })
+@ExtendsMultiple({ RealRoot.class })
 public class BreakingChild extends ITestRoot {
     @Override
     public void say() {

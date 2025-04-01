@@ -3,7 +3,7 @@ package ru.nsu.multher;
 import java.util.ArrayList;
 
 public class AncestorsTopSorter {
-    public static ArrayList<Class<?>> getTopstoredAncestorsClasses(Class<?> childClass) {
+    public static ArrayList<Class<?>> getTopSortedAncestorsClasses(Class<?> childClass) {
         var allAncestorsClasses = getParentsClassesRecursively(childClass, childClass);
         var ancestorsOrdered = new ArrayList<Class<?>>();
         for (var clazz : allAncestorsClasses.reversed()) {
