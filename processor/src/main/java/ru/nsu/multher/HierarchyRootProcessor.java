@@ -77,6 +77,9 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         }
     }
 
+    /*
+    Создает два поля (массивы): предков и возможных next экземпляров
+     */
     private ArrayList<FieldSpec> getFields(TypeName interfaceType) {
         ArrayList<FieldSpec> fieldSpecs = new ArrayList<>();
         fieldSpecs.add(FieldSpec
@@ -98,12 +101,16 @@ public class HierarchyRootProcessor extends AbstractProcessor {
         return fieldSpecs;
     }
 
+    /*
+    Создает конструктор корневого класса. Внутри него заполняется массив экземпляров
+    всех классов предков. В порядке топологической сортировки.
+     */
     private MethodSpec getConstructor(TypeElement interfaceElement) {
         return MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PROTECTED)
                 .addStatement("this.ancestors = new ArrayList<>()")
                 .addStatement("this.possibleNextInsts = new ArrayList<>()")
-                .addStatement("var classes = $L.getTopstoredAncestorsClasses(this.getClass())", ClassName.get(AncestorsTopSorter.class))
+                .addStatement("var classes = $L.getTopSortedAncestorsClasses(this.getClass())", ClassName.get(AncestorsTopSorter.class))
                 .addCode(
                         "for (Class<?> ancestorClass : classes) {\n" +
                                 "  try {\n" +
@@ -116,6 +123,9 @@ public class HierarchyRootProcessor extends AbstractProcessor {
                 .build();
     }
 
+    /*
+    Создает вспомогательный метод, который возвращает список классов всех предков
+     */
     private MethodSpec getAncestorsDiagnosticGetter() {
         var argClassType = ParameterizedTypeName.get(ClassName.get(Class.class), TypeVariableName.get("?"));
         var retClassType = ParameterizedTypeName.get(ClassName.get(ArrayList.class), argClassType);

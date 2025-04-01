@@ -7,7 +7,6 @@ public class Main {
     public static void main(String[] args) {
         BottomChild bottomChild = new BottomChild();
         basicTestPipeline(bottomChild);
-        basicTestPipeline(bottomChild);
         System.out.println();
 
         ChildA childA = new ChildA();
@@ -22,12 +21,8 @@ public class Main {
         basicTestPipeline(brokenChild);
         System.out.println();
 
-        StateChild stateChild = new StateChild(4);
+        StateChild stateChild = new StateChild();
         basicTestPipeline(stateChild);
-        System.out.println();
-
-        StateBottomChild stateBottomChild  = new StateBottomChild(2);
-        basicTestPipeline(stateBottomChild);
         System.out.println();
     }
 
