@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import javax.tools.JavaFileObject;
 import java.io.IOException;
-import java.util.ServiceLoader;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
