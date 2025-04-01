@@ -207,9 +207,4 @@ public class FrameworkIntegrationTest {
 
         CompilationSubject.assertThat(compilation).succeeded();
     }
-
-    private ClassLoader createClassLoaderFromCompilation(Compilation compilation) {
-        // Здесь можно использовать ByteBuddy или другой инструмент для загрузки сгенерированных классов
-        return ServiceLoader.load(ClassLoader.class).iterator().next();
-    }
 }
